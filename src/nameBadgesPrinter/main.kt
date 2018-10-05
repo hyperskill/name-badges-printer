@@ -1,4 +1,4 @@
-package nameBadjesPrinter
+package nameBadgesPrinter
 
 fun main(args: Array<String>) {
     print("Hello world!")
