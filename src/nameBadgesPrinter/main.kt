@@ -1,120 +1,113 @@
 package nameBadgesPrinter
 
+import java.io.File
 import java.util.*
+import kotlin.math.max
 
-private const val SPACES_BETWEEN_NAME_AND_SURNAME: String = "  "
-private const val LEFT_BORDER: String = "*  "
-private const val RIGHT_BORDER: String = "  *"
+private const val SPACE_BETWEEN_WORDS: String = "     "
+private const val BORDER: String = "  "
+private const val FILLER: String = "8"
+private const val MEDIUM_FONT: String = "fonts/medium.txt"
+private const val ROMAN_FONT: String = "fonts/roman.txt"
 
 fun main() {
-    val lettersMap = initLettersMap()
-    val (name, surname, status) = readData()
-    printBadge(name, surname, status, lettersMap)
+    val mediumFontMap = initLettersMap(MEDIUM_FONT)
+    val romanFontMap = initLettersMap(ROMAN_FONT)
+    val (name, status) = readData()
+    printBadge(name, status, romanFontMap, mediumFontMap)
 }
 
-private fun printBadge(name: String, surname: String, status: String, lettersMap: Map<Char, Letter>) {
-    val length = calculateLength(name, surname, lettersMap)
-    repeat(length) {
-        print("*")
+private fun printBadge(name: String, status: String, nameLettersMap: Map<Char, Letter>,
+                       statusLetterMap: Map<Char, Letter>) {
+    val (nameLength, statusLength, totalLength) = calculateLength(name, status, nameLettersMap, statusLetterMap)
+    printBorder(totalLength)
+    printWord(name, nameLettersMap, nameLength, totalLength, true)
+    printWord(status, statusLetterMap, statusLength, totalLength, false)
+    printBorder(totalLength)
+}
+
+fun printWord(word: String, lettersMap: Map<Char, Letter>, length: Int, totalLength: Int, doubleSpaces: Boolean) {
+    val leftSpaces = (totalLength - length) / 2
+    val rightSpaces = totalLength - length - leftSpaces
+    val height = lettersMap['a']?.rows?.size ?: 0
+    for (i in 0 until height) {
+        print("$FILLER$FILLER$BORDER")
+        repeat(leftSpaces) {
+            print(" ")
+        }
+        for (char in word) {
+            print(lettersMap[char]?.rows?.get(i) ?: "")
+            if (char == ' ') {
+                print(SPACE_BETWEEN_WORDS)
+                if (doubleSpaces) {
+                    print(SPACE_BETWEEN_WORDS)
+                }
+            }
+        }
+        repeat(rightSpaces) {
+            print(" ")
+        }
+        print("$BORDER$FILLER$FILLER\n")
+    }
+}
+
+private fun printBorder(totalLength: Int) {
+    repeat(totalLength) {
+        print(FILLER)
     }
     println()
-    printName(name, surname, lettersMap)
-    printStatus(status, length)
-    repeat(length) {
-        print("*")
-    }
 }
 
-private fun printName(name: String, surname: String, lettersMap: Map<Char, Letter>) {
-    val fullName = name + SPACES_BETWEEN_NAME_AND_SURNAME + surname
+data class LengthResult(val nameLegth: Int, val statusLength: Int, val totalLength: Int)
 
-    print(LEFT_BORDER)
-    for (letter in fullName) {
-        print("${lettersMap[letter]?.firstRow ?: " "} ")
+private fun calculateLength(name: String, status: String, nameLettersMap: Map<Char, Letter>,
+                            statusLetterMap: Map<Char, Letter>): LengthResult {
+    var nameLength = calculateStringLength(name, nameLettersMap)
+    var statusLength = calculateStringLength(status, statusLetterMap)
+    if (name.contains(' ')) {
+        nameLength += SPACE_BETWEEN_WORDS.length * 2
     }
-    print("${RIGHT_BORDER.drop(1)}\n")
-
-    print(LEFT_BORDER)
-    for (letter in fullName) {
-        print("${lettersMap[letter]?.secondRow ?: " "} ")
+    if (status.contains(' ')) {
+        statusLength += SPACE_BETWEEN_WORDS.length
     }
-    print("${RIGHT_BORDER.drop(1)}\n")
-
-    print(LEFT_BORDER)
-    for (letter in fullName) {
-        print("${lettersMap[letter]?.thirdRow ?: " "} ")
-    }
-    print("${RIGHT_BORDER.drop(1)}\n")
+    val totalLength = max(nameLength, statusLength)
+    return LengthResult(nameLength, statusLength, totalLength)
 }
 
-private fun printStatus(status: String, length: Int) {
-    val spaces = (length - status.length) / 2 - 2
-    print("*")
-    repeat(spaces) {
-        print(" ")
-    }
-    print(status)
-    repeat(length - status.length - spaces - 2) {
-        print(" ")
-    }
-    println("*")
-}
-
-private fun calculateLength(name: String, surname: String, lettersMap: Map<Char, Letter>): Int {
-    var length = name.chars()
-        .map{lettersMap[it.toChar()]?.firstRow?.length ?: 1}
+private fun calculateStringLength(string: String, lettersMap: Map<Char, Letter>): Int {
+    var length = string.chars()
+        .map { lettersMap[it.toChar()]?.rows?.get(0)?.length ?: 0 }
         .sum()
-    length += surname.chars()
-        .map{lettersMap[it.toChar()]?.firstRow?.length ?: 1}
-        .sum()
-
-    length += SPACES_BETWEEN_NAME_AND_SURNAME.length * 2 + 1
-    length += LEFT_BORDER.length
-    length += RIGHT_BORDER.length
-    length += name.length - 1 // spaces between letters
-    length += surname.length - 1
+    length += BORDER.length * 2
+    length += FILLER.length * 4
     return length
 }
 
-data class Result(val name: String, val surname: String, val status: String)
+data class Result(val name: String, val status: String)
+
 private fun readData(): Result {
     val scanner = Scanner(System.`in`)
     println("Enter name and surname:")
-    val name = scanner.next().toUpperCase()
-    val surname = scanner.next().toUpperCase()
+    val name = scanner.nextLine()
     println("Enter person's status:")
-    val status = scanner.next()
-    return Result(name, surname, status)
+    val status = scanner.nextLine()
+    return Result(name, status)
 }
 
-private fun initLettersMap() : Map<Char, Letter>{
-    return mapOf(
-        'A' to Letter("____", "|__|", "|  |"),
-        'B' to Letter("___ ", "|__]", "|__]"),
-        'C' to Letter("____", "|   ", "|___"),
-        'D' to Letter("___ ", "|  \\", "|__/"),
-        'E' to Letter("____", "|___", "|___"),
-        'F' to Letter("____", "|___", "|   "),
-        'G' to Letter("____", "| __", "|__]"),
-        'H' to Letter("_  _", "|__|", "|  |"),
-        'I' to Letter("_", "|", "|"),
-        'J' to Letter(" _", " |", "_|"),
-        'K' to Letter("_  _", "|_/ ", "| \\_"),
-        'L' to Letter("_   ", "|   ", "|___"),
-        'M' to Letter("_  _", "|\\/|", "|  |"),
-        'N' to Letter("_  _", "|\\ |", "| \\|"),
-        'O' to Letter("____", "|  |", "|__|"),
-        'P' to Letter("___ ", "|__]", "|   "),
-        'Q' to Letter("____", "|  |", "|_\\|"),
-        'R' to Letter("____", "|__/", "|  \\"),
-        'S' to Letter("____", "[__ ", "___]"),
-        'T' to Letter("___", " | ", " | "),
-        'U' to Letter("_  _", "|  |", "|__|"),
-        'V' to Letter("_  _", "|  |", " \\/ "),
-        'W' to Letter("_ _ _", "| | |", "|_|_|"),
-        'X' to Letter("_  _", " \\/ ", "_/\\_"),
-        'Y' to Letter("_   _", " \\_/ ", "  |  "),
-        'Z' to Letter("___ ", "  / ", " /__"),
-        ' ' to Letter(" ", " ", " ")
-    )
+private fun initLettersMap(fileName: String): MutableMap<Char, Letter> {
+    val fileReader = Scanner(File(fileName))
+    val height = fileReader.nextInt()
+    val numOfLetters = fileReader.nextInt()
+    val lettersMap = mutableMapOf<Char, Letter>()
+    for (i in 1..numOfLetters) {
+        val letter = Letter(height)
+        val char = fileReader.next()[0]
+        fileReader.nextInt() // character width - never used
+        fileReader.nextLine()
+        for (j in 0 until height) {
+            letter.rows.add(fileReader.nextLine())
+        }
+        lettersMap[char] = letter
+    }
+    return lettersMap
 }

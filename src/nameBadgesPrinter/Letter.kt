@@ -1,6 +1,6 @@
 package nameBadgesPrinter
 
 class Letter(
-    val firstRow: String,
-    val secondRow: String,
-    val thirdRow: String)
+    val size: Int,
+    var rows: ArrayList<String> = arrayListOf<String>()
+)
